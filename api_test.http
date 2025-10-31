@@ -1,0 +1,5 @@
+@baseUrl = http://localhost:8080
+@apiUrl = {{baseUrl}}/api/v1
+@token=
+### Health Check - server running
+GET {{baseUrl}}/v1/health
