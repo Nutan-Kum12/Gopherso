@@ -1,6 +1,7 @@
 # API test files
 api_test.http
-
+.envrc
+.env
 # Binaries
 bin/
 *.exe
