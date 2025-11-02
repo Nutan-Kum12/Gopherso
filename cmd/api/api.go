@@ -5,15 +5,24 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Nutan-Kum12/Gopherso/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 type application struct {
 	config config
+	store  store.Storage
 }
 type config struct {
 	addr string
+	db   dbConfig
+}
+type dbConfig struct {
+	addr         string // Address of your DB (host + port + dbname + user + password)
+	maxOpenConns int    // Maximum number of open (in-use + idle) connections
+	maxIdleConns int    // Maximum number of idle (ready-to-use) connections
+	maxIdleTime  string // Duration string, e.g. "15m" meaning 15 minutes
 }
 
 // chi.Mux implements http.Handler
