@@ -2,6 +2,8 @@
 api_test.http
 .envrc
 .env
+docs/API.md
+
 # Binaries
 bin/
 *.exe

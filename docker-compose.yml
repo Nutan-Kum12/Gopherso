@@ -1,14 +1,10 @@
 services:
   db:
-        image: postgres:13-alpine
+        image: mongo:7
         container_name: gopherso-db
-        environment:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres
-            POSTGRES_DB: gopherso
         volumes:
-            - pgdata:/var/lib/postgresql/data   
+            - mongodata:/data/db
         ports:
-            - "5432:5432"
+            - "27017:27017"
 volumes:
-    pgdata:   
+    mongodata:   

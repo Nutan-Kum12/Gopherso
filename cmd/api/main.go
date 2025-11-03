@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/Nutan-Kum12/Gopherso/internal/db"
@@ -17,22 +18,36 @@ func main() {
 	cfg := config{
 		addr: env.GetString("ADDR", ":8080"),
 		db: dbConfig{
-			addr:         env.GetString("DB_ADDR", "host=localhost port=5432 user=postgres password=postgres dbname=gopherso sslmode=disable"),
-			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 25),
-			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 25),
-			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "15m"),
+			uri:         env.GetString("DB_URI", "mongodb://admin:password@localhost:27017/gopherso?authSource=admin"),
+			name:        env.GetString("DB_NAME", "gopherso"),
+			maxPoolSize: uint64(env.GetInt("DB_MAX_POOL_SIZE", 25)),
+			minPoolSize: uint64(env.GetInt("DB_MIN_POOL_SIZE", 5)),
+			maxIdleTime: env.GetString("DB_MAX_IDLE_TIME", "15m"),
 		},
 	}
-	db, err := db.New(
-		cfg.db.addr,
-		cfg.db.maxOpenConns,
-		cfg.db.maxIdleConns,
+	client, err := db.New(
+		cfg.db.uri,
+		cfg.db.maxPoolSize,
+		cfg.db.minPoolSize,
 		cfg.db.maxIdleTime,
 	)
 	if err != nil {
 		log.Fatal("Error initializing database:", err)
 	}
-	store := store.NewStorage(db)
+	defer client.Disconnect(context.Background())
+	log.Println("MongoDB connection established.")
+
+	// Initialize database and collections
+	if err := db.Initialize(client, cfg.db.name); err != nil {
+		log.Printf("Warning: Error initializing database: %v", err)
+	}
+
+	// Create database indexes for better performance
+	if err := db.CreateIndexes(client, cfg.db.name); err != nil {
+		log.Printf("Warning: Error creating indexes: %v", err)
+	}
+
+	store := store.NewStorage(client, cfg.db.name)
 	app := application{
 		config: cfg,
 		store:  store,

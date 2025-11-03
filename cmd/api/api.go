@@ -19,10 +19,11 @@ type config struct {
 	db   dbConfig
 }
 type dbConfig struct {
-	addr         string // Address of your DB (host + port + dbname + user + password)
-	maxOpenConns int    // Maximum number of open (in-use + idle) connections
-	maxIdleConns int    // Maximum number of idle (ready-to-use) connections
-	maxIdleTime  string // Duration string, e.g. "15m" meaning 15 minutes
+	uri         string // MongoDB connection URI
+	name        string // Database name
+	maxPoolSize uint64 // Maximum number of connections in pool
+	minPoolSize uint64 // Minimum number of connections in pool
+	maxIdleTime string // Duration string, e.g. "15m" meaning 15 minutes
 }
 
 // chi.Mux implements http.Handler
@@ -43,9 +44,22 @@ func (app application) mount() http.Handler {
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
-		//posts
-		//auth
-		//users
+
+		// User routes
+		r.Route("/users", func(r chi.Router) {
+			r.Post("/", app.createUserHandler)           // POST /v1/users
+			r.Get("/", app.getUserHandler)               // GET /v1/users?id={id}
+			r.Get("/posts", app.getUserWithPostsHandler) // GET /v1/users/posts?id={id}
+		})
+
+		// Post routes
+		r.Route("/posts", func(r chi.Router) {
+			r.Post("/", app.createPostHandler)              // POST /v1/posts
+			r.Get("/", app.getPostsHandler)                 // GET /v1/posts (all posts)
+			r.Get("/single", app.getPostHandler)            // GET /v1/posts/single?id={id}
+			r.Get("/with-user", app.getPostWithUserHandler) // GET /v1/posts/with-user?id={id}
+			r.Get("/by-user", app.getPostsByUserHandler)    // GET /v1/posts/by-user?user_id={id}
+		})
 	})
 	return r
 }

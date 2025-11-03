@@ -2,29 +2,40 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
-	_ "github.com/lib/pq"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func New(addr string, maxOpenConns, maxIdleConns int, maxIdleTime string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", addr)
-	if err != nil {
-		return nil, err
-	}
-	db.SetMaxOpenConns(maxOpenConns)
-	db.SetMaxIdleConns(maxIdleConns)
+func New(uri string, maxPoolSize, minPoolSize uint64, maxIdleTime string) (*mongo.Client, error) {
+	// Parse idle time duration
 	duration, err := time.ParseDuration(maxIdleTime)
 	if err != nil {
 		return nil, err
 	}
-	db.SetConnMaxIdleTime(duration)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	// MongoDB client options
+	clientOptions := options.Client().
+		ApplyURI(uri).
+		SetMaxPoolSize(maxPoolSize).
+		SetMinPoolSize(minPoolSize).
+		SetMaxConnIdleTime(duration)
+
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := db.PingContext(ctx); err != nil {
+
+	// Connect to MongoDB
+	client, err := mongo.Connect(ctx, clientOptions)
+	if err != nil {
 		return nil, err
 	}
 
-	return db, nil
+	// Ping to verify connection
+	if err := client.Ping(ctx, nil); err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
